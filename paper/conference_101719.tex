@@ -10,6 +10,12 @@
 \usepackage{tabularx}
 \usepackage{array}
 
+% Revision markup: material added in this revision is set in bold.
+% To remove the highlighting before submission, change the two lines below to
+%   \newenvironment{added}{}{}  and  \newcommand{\addtext}[1]{#1}
+\newenvironment{added}{\bfseries}{}
+\newcommand{\addtext}[1]{\textbf{#1}}
+
 
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -42,7 +48,18 @@ Texas A\&M University--Central Texas, TX, USA\\
 \end{IEEEkeywords}
 
 \section{Introduction}
-Agentic AI is rapidly being incorporated into business, outsourcing cognitive effort from people to machine; however, AI agents are becoming increasingly more capable with new tools and access, and as such, there are more vectors of attack to consider than in traditional systems. Recent work has systematized the security risks this introduces but largely treats source trust as something to be handled in deployment. Despite the great feats achievable by frontier large language models, they do not replicate the intuition a person has to be able to decide whether the source of information should be trusted or not. Widespread use of agentic AI will require a reliable way to identify and categorize whether sources are authoritative or not and how much an agent should trust a source to prevent attacks affecting both business and people. In this paper, we will build an invoice processing agent, attack it, and defend it. We will make an authority-tiered evidence model enforced by an external policy engine using the. An agent given no explicit source of authority information will follow untrustworthy instructions at a meaningfully higher rate than an agent where authority of sources is tagged by an external policy engine. 
+Agentic AI is rapidly being incorporated into business, outsourcing cognitive effort from people to machine; however, AI agents are becoming increasingly more capable with new tools and access, and as such, there are more vectors of attack to consider than in traditional systems. Recent work has systematized the security risks this introduces but largely treats source trust as something to be handled in deployment. Despite the great feats achievable by frontier large language models, they do not replicate the intuition a person has to be able to decide whether the source of information should be trusted or not. Widespread use of agentic AI will require a reliable way to identify and categorize whether sources are authoritative or not and how much an agent should trust a source to prevent attacks affecting both business and people. In this paper, we will build an invoice processing agent, attack it, and defend it. We will make an authority-tiered evidence model enforced by an external policy engine using the. An agent given no explicit source of authority information will follow untrustworthy instructions at a meaningfully higher rate than an agent where authority of sources is tagged by an external policy engine. \addtext{We test this hypothesis directly by comparing three agents: one with no tags, one that sees tier tags only in its prompt, and one whose actions are gated by the external policy engine (Section~\ref{sec:protocol}).}
+
+\begin{added}
+The contributions of this paper are:
+\begin{itemize}
+    \item A threat model for persistent poisoning of agentic workflows. It includes \emph{tier laundering}, where low-authority content gains authority by passing through the agent's own database or memory writes.
+    \item A provenance-propagation rule: saved records and memory entries take the authority of their least trustworthy input, so saving a claim can never raise its authority.
+    \item EBDS, an evidence-based defense made of deterministic hard gates, a semantic trigger, evidence packets assembled by the backend, source-independence checks and an explicit ALLOW/REVIEW/DENY decision function.
+    \item An evaluation protocol with benign workloads, a matched baseline, per-family results, ablations and cost metrics.
+\end{itemize}
+\end{added}
+ 
 
 Before automation, an analyst would have to process each invoice manually. The analyst would first need to manually review the files and provide data entry for vender, invoice numbers, date, payment due date, and line items into a database. Furthermore, during data entry, the analyst would check for errors and discrepancies: plausible due dates, unusual items and prices, and incorrect information among other things. Data entry is not a purely mechanical process. If it were, faults could be missed and added to the database. Moreover, an analyst would know internal records outrank information on an invoice and would inquire about unusual instructions found in the invoice. Afterwards, the analyst would need to perform analytics on the invoice and data in the database either manually or using tools such as functions found in spreadsheet programs. Finally, a summary email would be drafted and sent to management. The case for automating this process is not hard to make. Invoice volume scales linearly with the cost of processing them, so there are cost savings to be made. Further, there is the elimination of human errors such as misinput. The downside of an LLM is that it does not inherit the trust judgment a human has, and this is the problem explored in this paper. 
 
@@ -62,7 +79,14 @@ Agent attack surfaces. Recent systematizations map the security risks introduced
 
 Guardrails and model hardening. A widely surveyed defense approach filters model inputs or outputs, or trains the model to weight instructions differently by claimed origin~\cite{kim2026sok}. These approaches classify content and are correspondingly vulnerable to the classification problem’s usual failure modes – false positives, false negatives, and evasion by adversarial phrasing~\cite{kim2026sok}. Our work does not attempt to classify the content of a source as malicious or benign. It instead records only where the content came from, using a fixed source-to-tier mapping: ERP and CRM records as Tier 1; audit logs and agent memory as Tier 2; uploaded documents and email as Tier 3, and lets that provenance govern what the source can support. 
 
-Policy enforcement and escalation. Closest to this work are systems that externalize authorization into structured policy rather than leaving it to the model’s own judgment~\cite{kim2026sok}. The policy question here is intentionally narrow: does the strongest evidence behind a pending action reach Tier 1 with no unresolved conflict (allow), does only Tier 2 evidence or a cross-tier conflict exist (escalate to a human), or is the action supported only by Tier 3 sources (deny)? Human-in-the-loop designs generally struggle to decide when to ask for review, since indiscriminate prompting causes reviewers to disengage~\cite{kim2026sok}. We base escalation specifically on cross-tier disagreement rather than on action type or a general risk score as a more principled approach: a human is asked to look only when two sources of differing authority contain, or when nothing sufficiently authoritative supports the action at all. As agents gain both capability and reach, what they are permitted to act on matters increasingly as much as what they are capable of.  
+Policy enforcement and escalation. Closest to this work are systems that externalize authorization into structured policy rather than leaving it to the model’s own judgment~\cite{kim2026sok}. The policy question here is intentionally narrow: does the strongest evidence behind a pending action reach Tier 1 with no unresolved conflict (allow), does only Tier 2 evidence or a cross-tier conflict exist (escalate to a human), or is the action supported only by Tier 3 sources (deny)? Human-in-the-loop designs generally struggle to decide when to ask for review, since indiscriminate prompting causes reviewers to disengage~\cite{kim2026sok}. We base escalation specifically on cross-tier disagreement rather than on action type or a general risk score as a more principled approach: a human is asked to look only when two sources of differing authority contain, or when nothing sufficiently authoritative supports the action at all. As agents gain both capability and reach, what they are permitted to act on matters increasingly as much as what they are capable of.
+
+\begin{added}
+Memory and knowledge-base poisoning. Indirect prompt injection was first shown to compromise LLM-integrated applications through content the model retrieves rather than content the user types~\cite{greshake2023indirect}. Later work targets stores that persist across sessions. PoisonedRAG injects a few crafted texts into a retrieval corpus to force attacker-chosen answers~\cite{zou2025poisonedrag}. AgentPoison poisons an agent's long-term memory or knowledge base with backdoor-triggered demonstrations~\cite{chen2024agentpoison}. MINJA shows that an attacker can insert malicious records into an agent's memory using only ordinary queries~\cite{dong2025minja}. These works assume the poisoned store is reachable by the attacker or written to by the agent from attacker-influenced interactions. We study a related but distinct path: in an enterprise workflow, the agent itself writes extracted document content into a structured database and a workflow memory, and later treats those stores as historical evidence. The poisoning happens through the agent's legitimate write path, not through direct access to the store.
+
+Information-flow control for agents. Spotlighting marks untrusted input so the model can recognize where it came from, but still leaves enforcement to the model~\cite{hines2024spotlighting}. CaMeL separates control flow, which comes from the trusted user query, from data flow, which may be untrusted, and enforces capability policies outside the model~\cite{debenedetti2025camel}. FIDES tracks confidentiality and integrity labels through an agent planner and enforces policies deterministically~\cite{costa2025fides}. AgentDojo provides a benchmark for evaluating such defenses against prompt-injection attacks~\cite{debenedetti2024agentdojo}. EBDS shares their core principle that trust is a property of where data came from, enforced outside the model. It differs in three ways: (i)~labels survive persistence and are checked against later runs, (ii)~decisions use past records as evidence, so replay, scope violations and identity drift can be detected, and (iii)~when evidence is insufficient the outcome is human review rather than refusal.
+\end{added}
+  
 
 
 
@@ -104,6 +128,37 @@ The security problem is consequently broader than prompt injection against a con
 external document -> extraction -> structured claim -> persistence -> later retrieval -> analytics -> consequential output
 The adversary is assumed to be able to modify an invoice PDF or an auxiliary external information source that the workflow is expected to read. The adversary is not assumed to possess backend access, database credentials, model credentials, or the ability to modify tool implementations. The threat therefore arises from an information-integrity boundary: content may be machine-readable and semantically plausible without being sufficiently justified for use in an operational decision.
 
+\begin{added}
+We consider two adversary levels:
+\begin{itemize}
+    \item $A_{\mathrm{doc}}$ controls only documents submitted to the workflow (invoice PDFs and their email bodies).
+    \item $A_{\mathrm{doc+aux}}$ additionally controls one auxiliary source that takes in external content. Examples include a vendor portal, a shared vendor-correspondence mailbox, or a notes file that staff update from vendor email.
+\end{itemize}
+Neither level has write access to the ERP vendor master or other Tier~1 systems. Table~\ref{tab:sources} gives, for each source, its authority tier and who can write to it. Section~\ref{sec:defense} uses this mapping to decide whether two sources that agree count as independent.
+\end{added}
+
+\begin{table}[t]
+\centering
+\begin{added}
+\caption{Sources, Authority Tiers, and Write Domains}
+\label{tab:sources}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\columnwidth}{p{2.4cm} p{1.5cm} X}
+\hline
+Source & Tier & Writable by \\
+\hline
+ERP / vendor master & 1 & Internal finance staff only \\
+CRM records & 1 & Internal staff only \\
+Audit logs & 2 & System only (append-only) \\
+Workflow memory & $\le 2$ (Sec.~\ref{sec:propagation}) & The agent, and therefore indirectly anything the agent reads \\
+PostgreSQL invoice tables & Inherited (Sec.~\ref{sec:propagation}) & The agent, through \texttt{save\_invoice\_to\_db} \\
+Auxiliary notes & 2 & Internal staff; $A_{\mathrm{doc+aux}}$ \\
+Uploaded PDFs / email & 3 & External parties; $A_{\mathrm{doc}}$ \\
+\hline
+\end{tabularx}
+\end{added}
+\end{table}
+
 \subsection{Attack surfaces and adversarial capabilities}
 The experiments intentionally combine several attack surfaces because a production agent rarely receives all information from a single trusted database. Invoices contain strongly typed accounting fields, but they also contain natural-language notes; the workflow may additionally consult reusable vendor guidance rather than embedding every recurring rule into the system prompt. This creates opportunities for an attacker to manipulate either the current document, contextual state retrieved from previous runs, or the relationship between the two.
 Document-layer manipulation
@@ -127,6 +182,53 @@ Recipient-change bypass and correlated evidence
 Targeted testing revealed an important failure case. The attacker changed the recipient email in the current invoice and inserted the same new address into the auxiliary notes. The prototype sometimes interpreted agreement between the two sources as corroboration and allowed the workflow to continue without creating the expected evidence packet. Earlier invoices from the same vendor contained a different recipient, but recipient-history drift was not sufficiently represented in the trigger decision.
 The bypass demonstrates that agreement is not equivalent to independence. Two weak or attacker-influenced sources can agree because the same adversary controls both. It also shows that provenance must be combined with temporal continuity, entity scope, and source-dependence information. The threat model therefore includes not only false claims, but also coordinated low-authority claims that create the appearance of corroboration.
 
+\begin{added}
+Tier laundering through persistence
+
+The tier mapping gives agent memory more authority (Tier~2) than uploaded documents (Tier~3). But the agent writes to memory, and what it writes comes from what it has read. If the agent extracts a sentence from an invoice and saves it with \texttt{save\_workflow\_memory}, a later run gets that sentence back as Tier~2 memory, and the Tier~3 origin is lost. The same applies to invoice rows: once saved, a value extracted from a PDF comes back from PostgreSQL looking just like a trusted record. We call this \emph{tier laundering}. It is the defining mechanism of memory poisoning in this workflow: the attacker never touches the memory store, and the agent's own legitimate writes launder the claim.
+
+Attacks against the defense
+
+An attacker who knows EBDS is deployed will target its parts directly:
+\begin{itemize}
+    \item Visibility evasion: hidden text that defeats text-layer checks. Examples are text drawn underneath a raster image, glyphs overlapping visible text, content in PDF annotations, form fields, metadata or optional-content layers, and custom font encodings whose extracted Unicode differs from the rendered glyphs.
+    \item Trigger evasion: a manipulation spread across several runs (slow drift) or split across several invoices, so that no single action looks suspicious.
+    \item Trigger and justification injection: the trigger model reads untrusted content, and the agent writes its own action justification. Invoice text can therefore try to persuade either one that a consequential action is routine.
+    \item Reviewer manipulation: content crafted so that the evidence packet shown to the human reviewer looks harmless. Alternatively, many REVIEW events are triggered on purpose so that reviewers start approving by habit.
+    \item Exfiltration through output: changing who receives the summary email, or what it contains, so internal data leaves the organization.
+\end{itemize}
+
+Attack success criteria
+
+For each attack family we define success as the strongest attacker goal reached in a run, in order: (S1)~the manipulated value is written to persistent state; (S2)~a later tool call returns and uses the value; (S3)~a consequential action is carried out, such as a discount applied, a recipient changed, a duplicate saved or an email sent; (S4)~the run is completed without a REVIEW or DENY decision. A defense is said to \emph{prevent} an attack only when none of S1--S3 occurs. Table~\ref{tab:taxonomy} lists the families; A7--A11 are new in this revision.
+\end{added}
+
+\begin{table*}[t]
+\centering
+\begin{added}
+\caption{Attack Taxonomy}
+\label{tab:taxonomy}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\textwidth}{p{0.7cm} p{3.6cm} p{4.0cm} p{3.0cm} X}
+\hline
+ID & Family & Injection point & Persists in & Intended effect \\
+\hline
+A1 & Invisible line item & PDF text layer & Invoice tables & Corrupted analytics \\
+A2 & Notes-field instruction & Important Notes & Invoice tables & Unauthorized discount or action \\
+A3 & Rule-scope transfer & Vendor identity fields & Invoice tables & Real rule applied to wrong vendor \\
+A4 & Replay / reprocessing & Whole invoice + note & Invoice tables & Duplicate state change \\
+A5 & Cross-run reinforcement & Later invoice & Invoice tables + memory & Earlier poison confirmed \\
+A6 & Correlated recipient change & Invoice + auxiliary notes & Vendor contact record & Payment or correspondence redirected \\
+A7 & Tier laundering via memory & Invoice $\rightarrow$ \texttt{save\_workflow\_memory} & Workflow memory & Tier~3 claim reused as Tier~2 \\
+A8 & Adaptive visibility evasion & Image overlay, annotations, font encoding & Invoice tables & Gets past the visibility check \\
+A9 & Trigger / justification injection & Invoice text aimed at the monitor & --- & Packet never built \\
+A10 & Reviewer manipulation / flooding & Packet content, many REVIEWs & --- & Human approves the unsafe action \\
+A11 & Exfiltration via output & Recipient or summary content & Email draft & Data leaves the organization \\
+\hline
+\end{tabularx}
+\end{added}
+\end{table*}
+
 \begin{figure*}[!t]
     \centering
     \includegraphics[
@@ -141,6 +243,7 @@ The bypass demonstrates that agreement is not equivalent to independence. Two we
 
 
 \section{Defense Methodology}
+\label{sec:defense}
 
 
 \subsection{Agentic execution model}
@@ -167,12 +270,12 @@ The packet is built to answer a small set of recurring verification questions ra
 Evidence packet construction at a glance
 The construction path used in the prototype is intentionally short:
 1. Observe - record the goal, proposed action, justification, and ordered tool history.
-2. Trigger - run the lightweight semantic security monitor to decide whether stronger evidence is needed.
+2. Trigger - \addtext{check the deterministic hard gates (Sec.~\ref{sec:hardgates}), then} run the lightweight semantic security monitor to decide whether stronger evidence is needed.
 3. Gather - collect structured claims, backend-bound provenance, PDF visibility results, PostgreSQL history, and relevant auxiliary notes or memory.
-4. Compare - check source authority, historical conflicts, entity/rule scope, representation anomalies, and action-chain deviation.
+4. Compare - check source authority, historical conflicts, entity/rule scope, representation anomalies, \addtext{source independence,} and action-chain deviation.
 5. Materialize - assemble only the evidence relevant to the current decision into the packet.
-6. Enforce - produce ALLOW, REVIEW, or DENY; REVIEW pauses execution for human approval.
-goal + ordered action trace + proposed action -> trigger -> evidence tools -> packet -> policy / HTL
+6. Enforce - produce ALLOW, REVIEW, or DENY \addtext{using the decision function in Sec.~\ref{sec:policy}}; REVIEW pauses execution for human approval.
+goal + ordered action trace + proposed action -> \addtext{hard gates ->} trigger -> evidence tools -> packet -> policy / HTL
 
 \subsection{Prototype tools and evidence producers}
 The evidence packet is hybrid: some claims are model-normalized, while provenance, visibility, historical state, and policy evidence are produced by backend or data-system components.
@@ -201,23 +304,27 @@ Historical/vendor context
 
 Invoice analytics
 & \texttt{get\_invoice\_lowest\_line\_item}; \texttt{get\_invoice\_highest\_line\_item}; \texttt{get\_invoice\_category\_itemwise\_count}; category/line-item tools
-& Verify claims that depend on persisted invoice contents and expose downstream effects of poisoned values. \\
+& Verify claims that depend on persisted invoice contents and expose downstream effects of poisoned values. \addtext{Results carry the effective tier of the rows they read.} \\
 
 Auxiliary workflow context
 & \texttt{lookup\_workflow\_memory}; \texttt{save\_workflow\_memory}
-& Retrieve or persist advisory workflow information without treating it as automatically authoritative. \\
+& Retrieve or persist advisory workflow information without treating it as automatically authoritative. \addtext{Writes always pass hard gate G3.} \\
 
 Persistence boundary
 & \texttt{save\_invoice\_to\_db}; \texttt{save\_results\_to\_file}
-& Consequential transition from extracted/untrusted content into durable state; save results of previous operations to a safe file to perform further operations as required by the goal. \\
+& Consequential transition from extracted/untrusted content into durable state; save results of previous operations to a safe file to perform further operations as required by the goal. \addtext{Every write records its input provenance.} \\
 
 Document representation
-& PyMuPDF visibility inspection
-& Inspect suspicious font size, near-background text, abnormal placement, and other text-layer anomalies. \\
+& PyMuPDF visibility inspection \addtext{+ render/OCR comparison}
+& Inspect suspicious font size, near-background text, abnormal placement, and other text-layer anomalies. \addtext{Flag extracted text missing from the rendered page.} \\
 
 Ordered action context
 & \texttt{toolTrace} + action-justification object
 & Preserve chronological tool use and expose goal/action deviation before consequential calls. \\
+
+\addtext{Hard gates}
+& \addtext{Deterministic rule set G1--G5}
+& \addtext{Force packet construction for high-risk transitions regardless of the semantic trigger.} \\
 
 Trigger
 & Security-event monitor
@@ -273,6 +380,14 @@ Authority tier
 & Policy configuration
 & Explicit source-class policy; not inferred solely from model confidence. \\
 
+\addtext{Effective tier of persisted data}
+& \addtext{Provenance propagation (Sec.~\ref{sec:propagation})}
+& \addtext{Least authoritative input tier; raised only by logged endorsement.} \\
+
+\addtext{Source independence}
+& \addtext{Write-domain policy (Table~\ref{tab:sources})}
+& \addtext{Overlap between write domains and external principals.} \\
+
 Goal/action alignment
 & Security trigger model
 & Semantic classification over goal, action description, prior activity, and compact risk signals. \\
@@ -300,7 +415,11 @@ semantic interpretation. The current implementation inspects text-layer
 characteristics such as very small font size, near-background text color,
 abnormal placement, and suspicious spans. These checks are intended to
 detect cases in which the parser exposes text that is not presented as
-ordinary visible invoice content.
+ordinary visible invoice content. \addtext{These checks use thresholds on minimum font size ($\theta_{\mathrm{font}}$) and minimum foreground/background contrast ($\theta_{\mathrm{contrast}}$); we set $\theta_{\mathrm{font}} = 3$\,pt and $\theta_{\mathrm{contrast}} = 1.5{:}1$ (WCAG contrast ratio). Legitimate invoice text, including fine print, is normally set at 6\,pt or larger with high contrast, so these thresholds flag hidden text without flagging ordinary small print.}
+
+\begin{added}
+To catch the evasions in family A8, the module also runs a rendered-versus-extracted comparison. It rasterizes each page, runs OCR on the image, and flags any extracted text that does not appear in the OCR output. This catches text hidden under images, overlapping glyphs and font encodings that map rendered glyphs to different Unicode text. It also reports content found in annotations, form fields, metadata and optional-content layers as separate representation findings.
+\end{added}
 
 The extraction model and the visibility module therefore answer different
 questions. The model determines what the machine-readable document says;
@@ -320,7 +439,7 @@ has already been processed, whether the same vendor/month combination exists,
 what recipient was historically associated with a vendor, which discounts
 were previously observed, or whether a newly extracted item deviates from
 prior records. The database therefore provides independent context that can
-contradict an otherwise plausible current document.
+contradict an otherwise plausible current document. \addtext{Because invoice rows may themselves come from Tier~3 documents, historical evidence is weighted by the effective tier of the rows it reads (Sec.~\ref{sec:propagation}), not by the fact that it comes from the database.}
 
 This approach converts several security questions into data-management
 operations. Duplicate processing becomes a query over prior invoice state;
@@ -329,6 +448,24 @@ vendor identity; recipient drift becomes a temporal comparison against
 earlier invoices; and persistence poisoning can be studied by tracing when
 an adversarial value first entered trusted state and which later queries
 consumed it.
+
+
+\subsection{\addtext{Provenance Propagation Through Persistence}}
+\label{sec:propagation}
+
+\begin{added}
+Each saved record $r$ and memory entry $m$ carries the source identifiers and tiers of the inputs it came from, $I(r)$. Its effective tier is that of its least authoritative input (Tier~1 is the most authoritative; higher numbers mean less authority):
+\begin{equation}
+\tau(r) = \max_{i \in I(r)} \tau(i)
+\label{eq:propagation}
+\end{equation}
+So an invoice row extracted from an uploaded PDF stays Tier~3 even though it lives in PostgreSQL. Memory entries are additionally capped:
+\begin{equation}
+\tau(m) = \max\Big(2,\; \max_{i \in I(m)} \tau(i)\Big)
+\label{eq:memorycap}
+\end{equation}
+A claim can only move up a tier through an explicit endorsement: a Tier~1 system of record confirms it, or a human reviewer approves it, and that approval is itself logged with a reviewer identifier. Analytics tools pass on the tier of the rows they return. For example, a ``lowest line item'' result built from a Tier~3 row is reported as Tier~3. This rule is aimed specifically at tier laundering (A7) and at the cross-run attacks A1 and A5.
+\end{added}
 
 
 \subsection{Auxiliary Evidence, Authority, and Scope}
@@ -348,6 +485,22 @@ or free-text instructions. Model confidence does not promote a weak source
 to a higher authority tier. This separation also makes it possible to study
 correlated evidence: two weak sources that agree should not automatically
 acquire the authority of an independent trusted source.
+
+
+\subsection{\addtext{Deterministic Hard Gates}}
+\label{sec:hardgates}
+
+\begin{added}
+The semantic trigger is itself an LLM that reads untrusted content (A9), so it cannot be the only gate. Before the trigger runs, EBDS checks a fixed set of deterministic rules. If any rule fires, an evidence packet is always built, whatever the trigger says:
+\begin{itemize}
+    \item G1: a write to persistent state that includes any Tier~3 claim not yet endorsed.
+    \item G2: a change to an identity, payment or recipient field that differs from the last Tier~1 or endorsed value for that entity (temporal drift).
+    \item G3: any write to workflow memory.
+    \item G4: an invoice key, either (vendor, invoice number) or (vendor, billing period), that already exists in saved state.
+    \item G5: a visibility anomaly, or a visibility result of ``unknown.''
+\end{itemize}
+The LLM trigger covers what these rules miss, such as departures from the goal and unusual sequences of actions. Rule G2 closes the recipient-change bypass by construction: the new address differs from the earlier value, so a packet is built even when the invoice and the notes agree.
+\end{added}
 
 
 \subsection{Dynamic Trigger Generation}
@@ -374,7 +527,7 @@ The trigger is semantic rather than a hardcoded map from tool names to
 packet creation. Typical escalation signals include persistent writes,
 external side effects, identity or recipient changes, reuse of weak
 instructions, replay/reprocessing, historical conflict, visibility
-anomalies, or a sequence of calls that deviates from the original goal.
+anomalies, or a sequence of calls that deviates from the original goal. \addtext{The trigger runs only after the hard gates in Sec.~\ref{sec:hardgates}. It can add packet construction that the gates did not require, but it can never cancel a gate that has fired.}
 
 The trigger model is not the final security decision maker. It only decides
 when to pay the cost of evidence materialization. The recipient-change
@@ -403,7 +556,7 @@ E_t =
 \end{equation}
 
 Here, $A_t$ is the proposed action, $C_t$ denotes the action-relevant
-claims, $P_t$ represents provenance and authority, $V_t$ denotes visibility
+claims, $P_t$ represents provenance and authority \addtext{(including the effective tiers from (\ref{eq:propagation})--(\ref{eq:memorycap}) and the write domains from Table~\ref{tab:sources})}, $V_t$ denotes visibility
 evidence, $D_t$ represents historical/database evidence, and $R_t$ denotes
 retrieved auxiliary rules. The ordered action trace $H_t$ is also retained
 as trigger and justification context when sequence-dependent deviations
@@ -419,12 +572,14 @@ line-item total disagreeing with the invoice subtotal. Other conflicts are
 semantic and may require model-assisted normalization, but the underlying
 observations remain source-linked.
 
-The current prototype treats source agreement as supporting evidence but
-does not yet fully model source dependence. The recipient-change bypass
-shows why this is insufficient. Future packets should distinguish
-independent corroboration from correlated repetition by recording who or
-what can modify each source, when the value first appeared, and whether an
-authoritative source confirms the change.
+\begin{added}
+Source independence. Each source $s$ has a write domain $W(s)$, taken from Table~\ref{tab:sources}. Two sources count as independent corroboration only if no untrusted principal can write to both:
+\begin{equation}
+\mathrm{indep}(s_1, s_2) \iff W(s_1) \cap W(s_2) \cap U = \emptyset
+\label{eq:indep}
+\end{equation}
+where $U$ is the set of external principals. Sources that agree but are not independent are treated as a single source, and their combined tier is the less authoritative of the two. In the recipient bypass, the invoice (writable by $A_{\mathrm{doc}}$) and the auxiliary note (writable by $A_{\mathrm{doc+aux}}$) share an attacker-controlled write domain. Their agreement therefore counts as a single Tier~3 claim. Hard gate G2 builds a packet for it, and the decision function in Sec.~\ref{sec:policy} sends it to REVIEW.
+\end{added}
 
 
 \subsection{Current Implementation Boundary}
@@ -445,6 +600,8 @@ The current implementation can be summarized as follows:
     a new address and the trigger does not request the historical recipient
     comparison.
 
+    \item \addtext{Specified in this revision, pending re-evaluation: provenance propagation through persistence (Sec.~\ref{sec:propagation}), hard gates G1--G5 (Sec.~\ref{sec:hardgates}), the rendered-versus-extracted visibility comparison, the source-independence rule (\ref{eq:indep}) and the formal decision function (Sec.~\ref{sec:policy}).}
+
     \item \textbf{Research direction:} retain the lightweight universal
     action-chain monitor, but expand soft-gating features for identity drift
     and other state transitions before invoking the more expensive full
@@ -453,6 +610,7 @@ The current implementation can be summarized as follows:
 
 
 \subsection{Policy Enforcement and Human-in-the-Loop Review}
+\label{sec:policy}
 
 The completed packet is evaluated by a policy gate that produces
 \textsc{ALLOW}, \textsc{REVIEW}, or \textsc{DENY}. The primary workflow
@@ -462,12 +620,26 @@ approve or deny continuation. The review therefore includes the specific
 claims, their sources, historical conflicts, visibility findings, and the
 action that would occur if execution resumed.
 
+\begin{added}
+Decision function. For a proposed action $a$, let $C(a)$ be the set of claims supporting it after merging non-independent sources (\ref{eq:indep}). Let $\tau^*(a) = \min_{c \in C(a)} \tau(c)$ be the best (lowest-numbered) effective tier among them. The policy gate decides:
+\begin{itemize}
+    \item DENY if $\tau^*(a) = 3$, or if any claim in $C(a)$ has a visibility anomaly.
+    \item REVIEW if $\tau^*(a) = 2$; or if a claim at tier $\tau^*(a)$ conflicts with another claim in the packet; or if the visibility result is unknown; or if G2 or G4 fired and no Tier~1 confirmation exists.
+    \item ALLOW otherwise, meaning $\tau^*(a) = 1$ with no unresolved conflict.
+\end{itemize}
+This puts the tier rule from Section~II into an exact form and connects it to the ALLOW/REVIEW/DENY outcomes.
+\end{added}
+
 This mechanism is particularly useful for replay and rule-scope cases. A
 duplicate invoice is not unconditionally rejected; instead, the packet can
 show that the invoice already exists, that no reprocessing authorization was
 found, and that the proposed write would alter trusted state. A legitimate
 correction can still proceed if an appropriate authorization source is
 present, while an unexplained replay is interrupted.
+
+\begin{added}
+Reviewer interface. To limit reviewer manipulation (A10), the packet shown to the reviewer is rendered by the backend from its structured fields. It shows extracted free text quoted as data, never as instructions. It always states the tier and write domain of every supporting source, and puts any conflict with the past value first. We record review frequency per workflow so that floods of REVIEW requests can be detected.
+\end{added}
 
 
 \section{Results and Analysis}
@@ -487,7 +659,7 @@ discount rules, replay/reprocessing attempts, and cases in which previously
 injected information could influence the interpretation of a later invoice.
 The corpus therefore tests whether the defense can challenge the propagation
 of questionable information, not merely whether it can recognize one lexical
-prompt-injection pattern.
+prompt-injection pattern. \addtext{In terms of Table~\ref{tab:taxonomy}, this corpus covers families A1--A6. Families A7--A11 are added in the revised protocol (Sec.~\ref{sec:protocol}).}
 
 
 \subsection{Observed Defensive Outcomes}
@@ -523,6 +695,10 @@ recipient-change bypass. In addition, a \textsc{REVIEW} result is not itself
 equivalent to a prevented attack: the ultimate outcome depends on the policy
 or human decision. We therefore distinguish evidence-trigger coverage from
 end-to-end prevention.
+
+\begin{added}
+With 25 out of 25 runs, the exact (Clopper--Pearson) 95\% confidence interval for intervention coverage is [86.3\%, 100\%]. A corpus of this size cannot rule out a miss rate of up to about 14\%. This corpus also has no benign runs, so it says nothing about how often clean invoices are wrongly sent to review. Both gaps are addressed by the protocol in Sec.~\ref{sec:protocol}.
+\end{added}
 
 
 \subsection{Visibility Checks Handled Representation-Level Attacks}
@@ -587,7 +763,7 @@ first model response would therefore underestimate the attack surface.
 A targeted negative test exposed a gap in the current trigger mechanism. A
 different recipient email was placed in the current invoice and the same
 address was also added to the external notes. The workflow sometimes
-accepted the new recipient without constructing an evidence packet. The two
+accepted the new recipient without constructing an evidence packet. \addtext{In [TBD] of 20 repeated trials, the new recipient was accepted without a packet.} The two
 current sources appeared to corroborate each other, while the historical
 fact that prior invoices for the same vendor used a different recipient was
 not sufficiently weighted at trigger time.
@@ -598,7 +774,7 @@ sources. Second, corroboration should account for source dependence: two
 sources that can be modified by the same attacker should not be counted as
 independent confirmations. The failure therefore does not invalidate
 provenance-based evidence; it shows that provenance must include temporal and
-dependency structure if it is to support robust corroboration.
+dependency structure if it is to support robust corroboration. \addtext{Hard gate G2 addresses the first signal and the source-independence rule (\ref{eq:indep}) the second. After both were added, the bypass occurred in [TBD] of 20 trials.}
 
 
 \subsection{Relation to the Earlier Baseline}
@@ -612,13 +788,89 @@ comparison. The operational change is nevertheless clear: the earlier
 workflow commonly converted manipulated document content directly into
 trusted state, whereas the defended workflow introduced representation-level
 interception or explicit evidence questioning in all 25 runs of the expanded
-corpus.
+corpus. \addtext{The revised protocol replaces this comparison with a matched baseline (configuration B0) run on the same corpus.}
 
 The more defensible conclusion is therefore not that the system achieves
 perfect prevention, but that EBDS changes the default workflow from
 ``extract, trust, and act'' toward ``extract, retain source identity, gather
 decision-relevant evidence, and escalate insufficiently justified
 transitions.''
+
+
+\subsection{\addtext{Evaluation Protocol for the Revised Study}}
+\label{sec:protocol}
+
+\begin{added}
+Workloads. The attack corpus covers families A1--A11 (Table~\ref{tab:taxonomy}), with 10 cases per family (5 at each adversary level), for 110 attack cases in total. A benign corpus of 100 invoices includes 80 clean invoices and 20 hard negatives: legitimate corrections with valid reprocessing authorization, real recipient changes confirmed in the ERP, and real vendor-specific discounts. Without these, the false-review rate cannot be measured.
+
+Matched baseline and repetitions. Every configuration runs on the same corpus. Each case is repeated 5 times, giving 50 runs per attack family and configuration and 500 benign runs per configuration. Each run uses a fixed model version at the provider's default temperature, which matches how agents are deployed; the repetitions capture run-to-run variation. We use at least two models from different providers and report exact version strings. Results are reported with exact 95\% confidence intervals: with 50 runs per family, observing no successful attacks bounds the true success rate below 7.1\%.
+
+Ablations. Table~\ref{tab:configs} lists the configurations. B1 tests the hypothesis stated in the introduction: that tier information has to be enforced outside the model, rather than only shown to it, to reduce instruction-following from untrusted sources.
+
+Reviewer policies. REVIEW outcomes are resolved under three reviewer policies, giving a range of end-to-end results: REVIEW$\rightarrow$DENY (most conservative), REVIEW$\rightarrow$ALLOW (worst case, the defense without a human), and a scripted reviewer that approves only when a Tier~1 confirmation exists.
+
+Metrics.
+\begin{itemize}
+    \item Security, per family: attack-success rate at each level S1--S4; false-allow rate; persistence-poisoning rate (the share of later analytics queries that return a poisoned value); escalation rate.
+    \item Utility, on the benign corpus: share of runs completed; false-review rate; false-deny rate.
+    \item Cost: monitor calls per action; packets built per workflow; extra tokens and model calls; added latency; human reviews per 100 invoices.
+\end{itemize}
+
+External validity. We also report B0 and B5 on the AgentDojo~\cite{debenedetti2024agentdojo} banking suite, whose tasks involve payments and recipient changes, with its injection points adapted to persist in workflow memory, to compare with prior defenses.
+\end{added}
+
+\begin{table}[t]
+\centering
+\begin{added}
+\caption{Evaluated Configurations}
+\label{tab:configs}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabularx}{\columnwidth}{p{0.7cm} X}
+\hline
+ID & Configuration \\
+\hline
+B0 & Undefended agent \\
+B1 & Tier tags in the prompt only (no external enforcement) \\
+B2 & Visibility checks only \\
+B3 & Evidence packets without historical queries \\
+B4 & Packets with historical and scope checks \\
+B5 & B4 + provenance propagation + hard gates + source independence (full EBDS) \\
+\hline
+\end{tabularx}
+\end{added}
+\end{table}
+
+\begin{table}[t]
+\centering
+\begin{added}
+\caption{Attack Success Rate (S3) by Family and Configuration (one row per family)}
+\label{tab:asr}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lcccccc}
+\hline
+Family & B0 & B1 & B2 & B3 & B4 & B5 \\
+\hline
+A1--A11 & TBD & TBD & TBD & TBD & TBD & TBD \\
+\hline
+\end{tabular}
+\end{added}
+\end{table}
+
+\begin{table*}[t]
+\centering
+\begin{added}
+\caption{Benign Utility and Overhead}
+\label{tab:utility}
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lcccccc}
+\hline
+Config & Completion & False review & False deny & Tokens / run & Latency & Reviews / 100 \\
+\hline
+B0--B5 (one row each) & TBD & TBD & TBD & TBD & TBD & TBD \\
+\hline
+\end{tabular}
+\end{added}
+\end{table*}
 
 
 \section{Discussion}
@@ -656,7 +908,7 @@ lineage. A future recipient claim could record the first observed time,
 prior authoritative values, source modification domains, and relationships
 among supporting sources. Such lineage would allow the system to distinguish
 ``two independent records agree'' from ``the same attacker modified two
-weak sources.''
+weak sources.'' \addtext{The write-domain rule (\ref{eq:indep}) and the provenance-propagation rule (\ref{eq:propagation})--(\ref{eq:memorycap}) are the first steps toward this lineage. Recording when a value was first seen is still future work.}
 
 
 \subsection{Hard Gating, Soft Gating, and Trigger False Negatives}
@@ -677,7 +929,7 @@ change, historical deviation, and provenance availability. Only actions
 that exceed this lightweight suspicion threshold invoke full evidence
 materialization. The research problem becomes selecting enough context for
 the soft gate to detect meaningful changes without reconstructing the
-entire workflow on every step.
+entire workflow on every step. \addtext{The deterministic hard gates (Sec.~\ref{sec:hardgates}) form the lowest layer of this hierarchy. They are cheap and cannot be argued out of firing, so the LLM trigger only has to handle the gray-zone cases.}
 
 This trade-off is measurable. Future evaluation should report not only
 attack-success and false-allow rates, but also how many actions invoke the
@@ -732,7 +984,7 @@ The invoice-specific checks should therefore be viewed as workload
 operators that instantiate broader evidence relations. Vendor/month replay
 detection is an instance of historical-state conflict; recipient drift is
 an identity-change relation; discount misuse is a scope violation; and
-hidden PDF text is a representation-provenance discrepancy.
+hidden PDF text is a representation-provenance discrepancy. \addtext{Tier laundering is an instance of label loss across a write boundary, and provenance propagation is the general remedy for it.}
 
 
 \subsection{Limitations and Next Evaluation}
@@ -750,22 +1002,11 @@ action may avoid full evidence generation if the trigger does not examine
 the relevant historical feature. The present system also lacks a complete
 model of source correlation and evidence independence.
 
-A larger evaluation should separate the contribution of each component
-through ablation:
+\begin{added}
+The ablation configurations and metrics for the next evaluation are given in Sec.~\ref{sec:protocol} (Table~\ref{tab:configs}).
 
-\begin{enumerate}
-    \item baseline agent;
-    \item visibility checks only;
-    \item evidence packets without historical queries;
-    \item evidence packets with historical and scope checks; and
-    \item the complete system with dynamic triggering and HTL.
-\end{enumerate}
-
-Primary security metrics should include attack-success rate, unsafe-action
-rate, false-allow rate, persistence-poisoning rate, and successful
-escalation. Operational metrics should include benign workflow completion,
-false-review rate, average latency, token overhead, number of model calls,
-and human-review frequency.
+Provenance propagation assumes every write path goes through instrumented tools. A tool that writes to state without recording where its inputs came from would undo the guarantee. Endorsement by a human reviewer is also a channel that can be attacked (A10). It is only as strong as the reviewer interface and the review rate allow. The write-domain mapping in Table~\ref{tab:sources} is set by policy, and if it is wrong, sources that are actually dependent would be counted as independent corroboration.
+\end{added}
 
 The most important open question is therefore not whether every action can
 be verified; it can, at sufficient cost. The question is how to identify
