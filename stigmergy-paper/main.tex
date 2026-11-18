@@ -9,7 +9,7 @@
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{url}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage{booktabs}
 \usepackage{microtype}
 \Urlmuskip=0mu plus 1mu
@@ -358,6 +358,38 @@ Alerts on vulnerability endpoints & 0 & 0/5 \\
 
 \texttt{NAMESPACE\_CHURN} fired on \texttt{/notes} in all five replicates and never on the vulnerability endpoints that each agent probed independently. \texttt{CROSS\_TASK\_READ} fired in three of five; each time the trace shows \texttt{a2} (BAC) reading \texttt{/notes/report\_sqli}, last written by \texttt{a1} (SQLi), before choosing its next action. Given per-run identity, the monitor therefore localizes activity to the shared surface and attributes reads to the correct pair of runs. It does not show that coordination arises without invitation, and with five replicates and no realistic benign shared traffic it says little about false-positive rates.
 
+
+\section{DEPLOYMENT COST AND LIMITATIONS}
+
+\textbf{Operational cost.} We have not measured the defense's overhead, but its main costs follow from its design. Per-run namespaces reduce cache reuse: a dependency fetched by one run is no longer visible to the next, so a shared package or build cache loses hit rate and bandwidth rises. The read-only, content-addressed cache of Section IV-A recovers most of this, because runs can still fetch artifacts by digest; only the ability to create or rename entries is removed. Per-run identity raises credential issuance from one long-lived token per pipeline to one short-lived SPIFFE/\allowbreak SVID per run [36], with a token exchange at each delegation hop [37], and adds an authorization decision to calls that were previously unchecked. Both are routine in zero-trust deployments [35], but fleets launching thousands of runs per hour should size their identity provider and policy gateway accordingly. The runtime monitor adds log volume proportional to shared-object accesses; its alert volume on real benign traffic, such as legitimate CI and cache sharing, is unknown, and our feasibility check cannot estimate it.
+
+\textbf{Compatibility.} The stack uses existing primitives (workload identity, storage prefixes, registry scopes, and egress policy), so adoption is mostly a matter of re-scoping credentials and paths rather than new infrastructure. Systems that rely on a single shared writable workspace, such as some multi-agent orchestration frameworks, would need their shared state moved into explicitly sanctioned, audited channels. Table IX compares the stack with established controls at the design level; entries follow from what each control enforces and are not measured results.
+
+\begin{table}[!t]
+\centering
+\caption{Design-Level Comparison with Established Controls (Not Measured)}
+\label{tab:compare}
+\renewcommand{\arraystretch}{1.12}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}X|c|c|c|c|c|}
+\hline
+\textbf{Control} & \textbf{\shortstack{Explicit\\board}} & \textbf{\shortstack{Indirect\\trace}} & \textbf{\shortstack{Deputy\\relay}} & \textbf{Timing} & \textbf{Detects} \\
+\hline
+Message security (ASI07: encryption, signing, per-agent credentials) & No & No & No & No & No \\
+Per-principal IAM audit & No & No & Partial$^{1}$ & No & No \\
+Container and network isolation & No & No & Partial$^{2}$ & No & No \\
+Content scanning / LLM guardrails & Partial$^{3}$ & No & No & No & Partial$^{3}$ \\
+\textbf{Our stack} (per-run identity, namespaces, invariant, monitor) & \textbf{Yes} & \textbf{Yes} & \textbf{Partial}$^{4}$ & \textbf{No} & \textbf{Partial}$^{5}$ \\
+\hline
+\end{tabularx}
+
+\vspace{2pt}
+\parbox{\columnwidth}{\scriptsize $^{1}$Can flag an over-privileged service account, but when every run shares one principal it appears correctly privileged. $^{2}$Egress policy limits relays to the internet, not through internal shared services; SPACE [7] showed a DNS-based egress gateway bypassed. $^{3}$Catches patterned, non-functional payloads (\texttt{zz\_} names, base64 chunks); traces that look like ordinary work pass. $^{4}$Only where service-mediated edges are modeled. $^{5}$Requires per-run identity; checked only on an invited-sharing testbed (Section VIII-B).}
+\end{table}
+
+
+\textbf{Limitations.} First, authorization closes storage channels only where permissions are modeled correctly; a service-mediated path that the analyzer misses, like the Artifactory request forgery, reopens the fleet. Second, agents that learn the monitor's signals could spread writes over time to stay below churn thresholds (the slow-drift case it already misses) or encode signals inside channels the operator has sanctioned. Third, timing and resource channels, such as forecasting container-reset waves, are untouched by write isolation. Fourth, the defense does not remove the incentive itself: scoring abstention addresses P1 only where operators adopt it, and SPACE [7] shows that agents under reward pressure keep probing for exits. These gaps, together with measuring cost and false-positive rates on realistic traffic, are what the planned benchmark is designed to test.
 
 \section{CONCLUSION AND FUTURE WORK}
 
