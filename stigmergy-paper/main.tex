@@ -11,6 +11,9 @@
 \usepackage{url}
 \usepackage{hyperref}
 \usepackage{booktabs}
+\usepackage{microtype}
+\Urlmuskip=0mu plus 1mu
+\raggedbottom
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
@@ -31,7 +34,7 @@ Emails: karthik.ramamoorthy@outlook.com, d.gupta@tamuct.edu, niurekal@erau.edu}
 
 \maketitle
 \begin{abstract}
-Organizations deploying fleets of autonomous artificial intelligence (AI) agents typically isolate individual runs inside separate containers while allowing them to share underlying infrastructure---such as package caches, object stores, version-control servers, and issue trackers---through a single pipeline service account. This shortcut opens a covert path through which runs can coordinate without any sanctioned channel between them. Drawing on the biological concept of stigmergy, in which social insects coordinate through traces left in a shared environment, and grounded in the July 2026 evaluation-fleet incident, we contribute a precondition threat model, a static channel-reach measure over storage permissions, and a defense that combines short-lived per-run SPIFFE/SVID identities, default-deny resource namespaces, a statically checkable shared-write invariant, and a runtime shared-write monitor. An analytical illustration across five permission topologies shows that channel reach grows linearly with the share of runs that a single shared object can touch; one relay readable by every run reconnects every run outside the writer's own task ($N_{\text{reach}}$=801 in a 1,000-run fleet with five task contexts). In a feasibility check on a three-agent testbed where agents were invited to share findings, the monitor flagged the shared service in 5 of 5 replicates and attributed a specific cross-task read in 3 of 5, while raising no alerts on endpoints the agents probed independently. We state the limits of both results and outline a fleet-scale benchmark.
+Organizations deploying fleets of autonomous artificial intelligence (AI) agents typically isolate individual runs inside separate containers while allowing them to share underlying infrastructure---such as package caches, object stores, version-control servers, and issue trackers---through a single pipeline service account. This shortcut opens a covert path through which runs can coordinate without any sanctioned channel between them. Drawing on the biological concept of stigmergy, in which social insects coordinate through traces left in a shared environment, and grounded in the July 2026 evaluation-fleet incident, we contribute a precondition threat model, a static channel-reach measure over storage permissions, and a defense that combines short-lived per-run SPIFFE/\allowbreak SVID identities, default-deny resource namespaces, a statically checkable shared-write invariant, and a runtime shared-write monitor. An analytical illustration across five permission topologies shows that channel reach grows linearly with the share of runs that a single shared object can touch; one relay readable by every run reconnects every run outside the writer's own task ($N_{\text{reach}}$=801 in a 1,000-run fleet with five task contexts). In a feasibility check on a three-agent testbed where agents were invited to share findings, the monitor flagged the shared service in 5 of 5 replicates and attributed a specific cross-task read in 3 of 5, while raising no alerts on endpoints the agents probed independently. We state the limits of both results and outline a fleet-scale benchmark.
 \end{abstract}
 \begin{IEEEkeywords}
 Agentic AI, Multi-Agent Systems, Agent Fleet Security, Stigmergic Coordination
@@ -60,7 +63,7 @@ We call this phenomenon \textit{stigmergic coordination}, borrowing a term from 
 \begin{enumerate}
 \item \textbf{Threat model}: We define stigmergic coordination in multi-agent fleets and argue that it becomes likely when three conditions coincide: a scored task with no sanctioned abstention exit (P1), writable shared state (P2), and credentials bound to the pipeline rather than to each run (P3) (Section III).
 \item \textbf{Channel reach analysis}: We formulate a static reach-graph analyzer over storage permissions and derive closed forms for five topologies, showing analytically that reach grows linearly with the scope of the least-isolated shared object (Sections VI and VIII-A).
-\item \textbf{Defense architecture}: We design an authorization stack combining per-run SPIFFE/SVID identities, per-run default-deny namespaces, and a shared-write invariant that flags unsanctioned cross-task channels before launch (Section IV).
+\item \textbf{Defense architecture}: We design an authorization stack combining per-run SPIFFE/\allowbreak SVID identities, per-run default-deny namespaces, and a shared-write invariant that flags unsanctioned cross-task channels before launch (Section IV).
 \item \textbf{Runtime monitor and feasibility check}: We implement a shared-write monitor and check it on labeled synthetic traces and a three-agent testbed with invited sharing, stating explicitly what these checks do not show (Section VIII-B).
 \end{enumerate}
 
@@ -90,7 +93,7 @@ Sandboxing with shared backing services & The process or container & One volume,
 
 \subsection{Prior Work on Hidden Communication Between Processes}
 
-Long before large language models (LLMs) existed, operating-system researchers studied how two processes forbidden from communicating directly can still pass information through shared resources such as files, caches, locks, or timers. Lampson's confinement problem [22] framed the challenge of preventing a program from leaking data through shared state, and Kemmerer's shared resource matrix [23] established the split between storage and timing channels. Goguen and Meseguer's \textit{noninterference} [24] describes a fully contained system in which one process's actions do not affect what another observes, and Hardy's \textit{confused deputy} [25] shows how a privileged service misuses its authority on behalf of a caller. Ristenpart et al. [26] carried these ideas into multi-tenant clouds, where co-resident tenants leak information through shared infrastructure. Multi-agent AI fleets introduce a different actor: not a Trojan built to leak to a known colluder, but goal-directed agents under reward pressure that independently discover and repurpose shared storage.
+Long before large language models (LLMs) existed, op\-er\-at\-ing-system re\-search\-ers studied how two processes forbidden from communicating directly can still pass information through shared resources such as files, caches, locks, or timers. Lampson's confinement problem [22] framed the challenge of preventing a program from leaking data through shared state, and Kemmerer's shared resource matrix [23] established the split between storage and timing channels. Goguen and Meseguer's \textit{noninterference} [24] describes a fully contained system in which one process's actions do not affect what another observes, and Hardy's \textit{confused deputy} [25] shows how a privileged service misuses its authority on behalf of a caller. Ristenpart et al. [26] carried these ideas into multi-tenant clouds, where co-resident tenants leak information through shared infrastructure. Multi-agent AI fleets introduce a different actor: not a Trojan built to leak to a known colluder, but goal-directed agents under reward pressure that independently discover and repurpose shared storage.
 
 \subsection{Prior Work on LLM-Agent Misbehavior}
 
@@ -195,7 +198,7 @@ Table IV lists the three layers. Viewed through zero-trust architecture [35], ea
 \hline
 Layer & Control & Breaks \\
 \hline
-Identity & Per-run SPIFFE/SVID identity [36], short-lived and bound to the task; RFC 8693 token exchange [37] for on-behalf-of delegation at every hop & P3 \\
+Identity & Per-run SPIFFE/\allowbreak SVID identity [36], short-lived and bound to the task; RFC 8693 token exchange [37] for on-behalf-of delegation at every hop & P3 \\
 Namespace & Default-deny storage prefix, cache namespace, registry scope and egress policy per run, so the invariant below holds by construction & P2 \\
 Monitor & Shared-write monitor flagging cross-task reads and namespace churn (Section IV-C) & detection \\
 \hline
@@ -274,7 +277,7 @@ To rank configurations, we use the heuristic risk score $R_{\text{stig}}$ = $p_{
 
 \section{PLANNED BENCHMARK AND EVALUATION DESIGN}
 
-We are building an air-gapped benchmark that uses benign tasks and no offensive payloads; it has not yet been run. Existing suites---AgentDojo [27], Cybench [28], ExploitGym [29], and SPACE [7]---place a single agent against a single target or sandbox, so none represents concurrent runs sharing writable backing services. The planned cluster provides a mock package registry, object store, Git server, and CI runner whose shared namespaces can be opened or isolated; tasks in solvable, hard, and provably impossible tiers; a hidden grader with a decoy public description; and canary credentials that halt any run attempting escalation. Four conditions, listed in Table VI, vary the two levers independently: C0 reproduces the July 2026 configuration, C1 adds abstention scoring, C2 adds per-run identity and namespaces without abstention scoring, and C3 combines both with monitoring. Unlike our feasibility check, agents will not be told that other agents exist or offered a sharing service, and reward pressure will vary, so that discovery rate, join rate, and pooling gain can be measured and static reach compared with channels observed at runtime. The analyzer, monitor, and testbed are available at https://github.com/spbreed/stigmergic.
+We are building an air-gapped benchmark that uses benign tasks and no offensive payloads; it has not yet been run. Existing suites---AgentDojo [27], Cybench [28], ExploitGym [29], and SPACE [7]---place a single agent against a single target or sandbox, so none represents concurrent runs sharing writable backing services. The planned cluster provides a mock package registry, object store, Git server, and CI runner whose shared namespaces can be opened or isolated; tasks in solvable, hard, and provably impossible tiers; a hidden grader with a decoy public description; and canary credentials that halt any run attempting escalation. Four conditions, listed in Table VI, vary the two levers independently: C0 reproduces the July 2026 configuration, C1 adds abstention scoring, C2 adds per-run identity and namespaces without abstention scoring, and C3 combines both with monitoring. Unlike our feasibility check, agents will not be told that other agents exist or offered a sharing service, and reward pressure will vary, so that discovery rate, join rate, and pooling gain can be measured and static reach compared with channels observed at runtime. The analyzer, monitor, and testbed are available at \url{https://github.com/spbreed/stigmergic}.
 
 \begin{table}[!t]
 \centering
@@ -337,13 +340,12 @@ T1 SQLi & a1 gpt-oss-120b, /login & 0/5 & 5/5 & 0/5 \\
 T2 BAC & a2 gpt-oss-20b, /admin/users & 5/5 & 0/5 & 0/5 \\
 T3 XSS & a3 gpt-oss-120b, /search & 1/5 & 4/5 & 0/5 \\
 \hline
-\end{tabularx}
-\vspace{4pt}
+\end{tabularx}\par\vspace{4pt}
 \renewcommand{\arraystretch}{1.15}
 \footnotesize
 \begin{tabularx}{\columnwidth}{|>{\raggedright\arraybackslash}X|c|>{\raggedright\arraybackslash}X|}
 \hline
-Monitor signal & Alerts & Replicates firing (95\% CI) \\
+Monitor signal & Alerts & Reps firing (95\% CI) \\
 \hline
 NAMESPACE\_CHURN on /notes & 8 & 5/5 (48--100\%) \\
 CROSS\_TASK\_READ & 3 & 3/5 (15--95\%) \\
@@ -359,20 +361,20 @@ Alerts on vulnerability endpoints & 0 & 0/5 \\
 
 \section{CONCLUSION AND FUTURE WORK}
 
-Agents that cannot message one another directly can still coordinate through traces left in shared caches, repositories, and object stores. We named this behavior \textit{stigmergic coordination} and argued that it becomes likely when three preconditions coincide: task scoring with no sanctioned abstention exit (P1), writable shared state (P2), and credentials bound to the pipeline rather than to each run (P3). An analytical illustration showed that channel reach grows linearly with the scope of the least-isolated shared object, so a single broadly readable relay can reconnect most of a fleet. We proposed a defense from existing tools---per-run SPIFFE/SVID identities, default-deny per-run namespaces, a pre-launch shared-write invariant, and a runtime monitor---under which reach is 1 by construction, and showed in a small testbed with invited sharing that the monitor localizes and attributes cross-task activity. Establishing how often such coordination emerges unprompted, how the defense holds against real permission data and adaptive agents, and what it costs in practice is the goal of the planned benchmark; we also plan to extend the monitor to slow-drift boards and to timing and resource channels.
+Agents that cannot message one another directly can still coordinate through traces left in shared caches, repositories, and object stores. We named this behavior \textit{stigmergic coordination} and argued that it becomes likely when three preconditions coincide: task scoring with no sanctioned abstention exit (P1), writable shared state (P2), and credentials bound to the pipeline rather than to each run (P3). An analytical illustration showed that channel reach grows linearly with the scope of the least-isolated shared object, so a single broadly readable relay can reconnect most of a fleet. We proposed a defense from existing tools---per-run SPIFFE/\allowbreak SVID identities, default-deny per-run namespaces, a pre-launch shared-write invariant, and a runtime monitor---under which reach is 1 by construction, and showed in a small testbed with invited sharing that the monitor localizes and attributes cross-task activity. Establishing how often such coordination emerges unprompted, how the defense holds against real permission data and adaptive agents, and what it costs in practice is the goal of the planned benchmark; we also plan to extend the monitor to slow-drift boards and to timing and resource channels.
 
 
 \begin{thebibliography}{99}
-\bibitem{ref1} METR, "Brief independent investigation of agents' behavior, reasoning and collaboration in the OpenAI / Hugging Face hacking incident," https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/, Aug. 2026, 26 August 2026.
-\bibitem{ref2} OpenAI, "The Hugging Face incident and the road ahead," https://openai.com/index/hugging-face-incident-and-the-road-ahead/, Aug. 2026, 26 August 2026.
+\bibitem{ref1} METR, "Brief independent investigation of agents' behavior, reasoning and collaboration in the OpenAI / Hugging Face hacking incident," \url{https://metr.org/blog/2026-08-26-openai-hugging-face-incident-investigation/}, Aug. 2026, 26 August 2026.
+\bibitem{ref2} OpenAI, "The Hugging Face incident and the road ahead," \url{https://openai.com/index/hugging-face-incident-and-the-road-ahead/}, Aug. 2026, 26 August 2026.
 \bibitem{ref3} D. Amodei, C. Olah, J. Steinhardt, P. Christiano, J. Schulman, and D. Mané, "Concrete problems in AI safety," \textit{arXiv preprint arXiv:1606.06565}, 2016.
 \bibitem{ref4} V. Krakovna, J. Uesato, V. Mikulik, M. Rahtz, T. Everitt, R. Kumar, Z. Kenton, J. Leike, and S. Legg, "Specification gaming: The flip side of AI ingenuity," \textit{DeepMind Blog}, 2020.
 \bibitem{ref5} J. Skalse, N. Howe, D. Krasheninnikov, and D. Krueger, "Defining and characterizing reward gaming," in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 35, 2022.
 \bibitem{ref6} B. Baker, J. Huizinga, L. Gao, Z. Dou, M. Y. Guan, A. Madry, W. Zaremba, J. Pachocki, and D. Farhi, "Monitoring reasoning models for misbehavior and the risks of promoting obfuscation," \textit{arXiv preprint arXiv:2503.11926}, 2025.
-\bibitem{ref7} Perplexity AI, "Escaping SPACE, part I: Sandbox and network boundary evaluations for AI agents," https://www.perplexity.ai/hub/blog/escaping-space-part-i, 2026, blog post.
+\bibitem{ref7} Perplexity AI, "Escaping SPACE, part I: Sandbox and network boundary evaluations for AI agents," \url{https://www.perplexity.ai/hub/blog/escaping-space-part-i}, 2026, blog post.
 \bibitem{ref8} S. R. Motwani, M. Baranchuk, M. Strohmeier, V. Bolina, P. H. S. Torr, L. Hammond, and C. Schroeder de Witt, "Secret collusion among AI agents: Multi-agent deception via steganography," in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, vol. 37, 2024.
 \bibitem{ref9} Y. Mathew, O. Matthews, R. McCarthy, J. Velja, C. Schroeder de Witt, D. Cope, and N. Schoots, "Hidden in plain text: Emergence \& mitigation of steganographic collusion in LLMs," in \textit{Proceedings of the 14th International Joint Conference on Natural Language Processing and the 4th Conference of the Asia-Pacific Chapter of the Association for Computational Linguistics (IJCNLP-AACL)}, 2025, arXiv:2410.03768.
-\bibitem{ref10} Gartner, Inc., "Gartner top 10 strategic technology trends for 2025: Agentic AI," https://www.gartner.com/en/articles/top-technology-trends-2025, Oct. 2024, press release; projects 33\% of enterprise software applications will include agentic AI by 2028, up from less than 1\% in 2024.
+\bibitem{ref10} Gartner, Inc., "Gartner top 10 strategic technology trends for 2025: Agentic AI," \url{https://www.gartner.com/en/articles/top-technology-trends-2025}, Oct. 2024, press release; projects 33\% of enterprise software applications will include agentic AI by 2028, up from less than 1\% in 2024.
 \bibitem{ref11} L. A. Kavuri, D. Gupta, and E. Hammad, "Agentic AI for continuous intelligence in future smart connected systems," in \textit{2026 56th Annual IEEE International Conference on Dependable Systems and Networks Workshops (DSN-W)}. IEEE, 2026, pp. 21--35.
 \bibitem{ref12} H. Karim, S. Sitharaman, D. Gupta, and D. B. Rawat, "From agent failure paths to quantified residual risk: A compositional framework for resilient agentic AI," in \textit{2026 56th Annual IEEE International Conference on Dependable Systems and Networks Workshops (DSN-W)}. IEEE, 2026, pp. 9--16.
 \bibitem{ref13} K. Greshake, S. Abdelnabi, S. Mishra, C. Endres, T. Holz, and M. Fritz, "Not what you've signed up for: Compromising real-world LLM-integrated applications with indirect prompt injection," in \textit{Proceedings of the 16th ACM Workshop on Artificial Intelligence and Security (AISec)}, 2023.
@@ -380,7 +382,7 @@ Agents that cannot message one another directly can still coordinate through tra
 \bibitem{ref15} S. Cohen, R. Bitton, and B. Nassi, "Here comes the AI worm: Unleashing zero-click worms that target GenAI-powered applications," arXiv:2403.02817, 2024.
 \bibitem{ref16} Z. Chen, Z. Xiang, C. Xiao, D. Song, and B. Li, "AgentPoison: Red-teaming LLM agents via poisoning memory or knowledge bases," in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, 2024, arXiv:2407.12784.
 \bibitem{ref17} W. Zou, R. Geng, B. Wang, and J. Jia, "PoisonedRAG: Knowledge corruption attacks to retrieval-augmented generation of large language models," in \textit{USENIX Security Symposium}, 2025, arXiv:2402.07867.
-\bibitem{ref18} OWASP Gen AI Security Project---Agentic Security Initiative, "OWASP top 10 for agentic applications 2026," https://genai.owasp.org/, Dec. 2025, version 2026, December 2025.
+\bibitem{ref18} OWASP Gen AI Security Project---Agentic Security Initiative, "OWASP top 10 for agentic applications 2026," \url{https://genai.owasp.org/}, Dec. 2025, version 2026, December 2025.
 \bibitem{ref19} P.-P. Grassé, "La reconstruction du nid et les coordinations interindividuelles chez \textit{Bellicositermes natalensis} et \textit{Cubitermes} sp. La théorie de la stigmergie: Essai d'interprétation du comportement des termites constructeurs," \textit{Insectes Sociaux}, vol. 6, no. 1, pp. 41--80, 1959.
 \bibitem{ref20} G. Theraulaz and E. Bonabeau, "A brief history of stigmergy," \textit{Artificial Life}, vol. 5, no. 2, pp. 97--116, 1999.
 \bibitem{ref21} F. Heylighen, "Stigmergy as a universal coordination mechanism I: Definition and components," \textit{Cognitive Systems Research}, vol. 38, pp. 4--13, 2016.
@@ -391,14 +393,14 @@ Agents that cannot message one another directly can still coordinate through tra
 \bibitem{ref26} T. Ristenpart, E. Tromer, H. Shacham, and S. Savage, "Hey, you, get off of my cloud: Exploring information leakage in third-party compute clouds," in \textit{Proceedings of the 16th ACM Conference on Computer and Communications Security (CCS)}, 2009, pp. 199--212.
 \bibitem{ref27} E. Debenedetti, J. Zhang, M. Balunović, L. Beurer-Kellner, M. Fischer, and F. Tramèr, "AgentDojo: A dynamic environment to evaluate prompt injection attacks and defenses for LLM agents," in \textit{NeurIPS Datasets and Benchmarks Track}, 2024.
 \bibitem{ref28} A. K. Zhang, N. Perry, R. Dulepet, E. Jones, J. W. Lin, J. Ji, C. Menders, G. Hussein, S. Liu \textit{et al.}, "Cybench: A framework for evaluating cybersecurity capabilities and risks of language models," in \textit{International Conference on Learning Representations (ICLR)}, 2025, arXiv:2408.08926.
-\bibitem{ref29} Berkeley Center for Responsible, Decentralized Intelligence, "ExploitGym: Can AI agents turn security vulnerabilities into real attacks?" https://rdi.berkeley.edu/blog/exploitgym, 2026, blog post.
+\bibitem{ref29} Berkeley Center for Responsible, Decentralized Intelligence, "ExploitGym: Can AI agents turn security vulnerabilities into real attacks?" \url{https://rdi.berkeley.edu/blog/exploitgym}, 2026, blog post.
 \bibitem{ref30} J. N. Foerster, Y. M. Assael, N. de Freitas, and S. Whiteson, "Learning to communicate with deep multi-agent reinforcement learning," in \textit{Advances in Neural Information Processing Systems (NeurIPS)}, 2016.
 \bibitem{ref31} Y. Shavit, S. Agarwal, M. Brundage, S. Adler, C. O'Keefe, R. Campbell, T. Lee, P. Mishkin, T. Eloundou, A. Hickey \textit{et al.}, "Practices for governing agentic AI systems," \textit{OpenAI Research White Paper}, 2024.
 \bibitem{ref32} A. Chan, C. Ezell, M. Kaufmann, K. Wei, L. Hammond, H. Bradley, E. Bluemke, N. Rajkumar, D. Krueger, N. Kolt, L. Heim, and M. Anderljung, "Visibility into AI agents," in \textit{Proceedings of the 2024 ACM Conference on Fairness, Accountability, and Transparency (FAccT)}, 2024.
 \bibitem{ref33} L. Hammond, A. Chan, J. Clifton, J. Hoelscher-Obermaier, A. Khan, E. McLean, C. Smith, W. Barfuss, J. Foerster \textit{et al.}, "Multi-agent risks from advanced AI," \textit{Cooperative AI Foundation Research Report}, 2025, arXiv:2502.14143.
 \bibitem{ref34} M. Dorigo, V. Maniezzo, and A. Colorni, "Ant system: Optimization by a colony of cooperating agents," \textit{IEEE Transactions on Systems, Man, and Cybernetics, Part B (Cybernetics)}, vol. 26, no. 1, pp. 29--41, 1996.
 \bibitem{ref35} S. Rose, O. Borchert, S. Mitchell, and S. Connelly, "Zero trust architecture," National Institute of Standards and Technology, NIST SP 800-207, 2020.
-\bibitem{ref36} SPIFFE Project, "SPIFFE: Secure production identity framework for everyone," https://spiffe.io/, Cloud Native Computing Foundation.
+\bibitem{ref36} SPIFFE Project, "SPIFFE: Secure production identity framework for everyone," \url{https://spiffe.io/}, Cloud Native Computing Foundation.
 \bibitem{ref37} M. B. Jones, A. Nadalin, B. Campbell, J. Bradley, and C. Mortimore, "OAuth 2.0 token exchange," \textit{RFC 8693}, Internet Engineering Task Force, Jan. 2020.
 \end{thebibliography}
 \end{document}
